@@ -1,5 +1,5 @@
-# Market_Trend_Analyzer
-This is an algorithm to help analyze the future trends in the stock market to support trading without the influence of human emotions by using the combination of multiple market indicators.
+# Stock Notification
+This is an algorithm that notifies potential opportunities associated with your watch list stocks to save time for daily analysis.
 
 All the metrics are defined and edited based on the personal experience and observation of the author Logan Yuan.
 
