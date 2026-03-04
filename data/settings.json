@@ -1,0 +1,34 @@
+{
+  "stocks": [
+    "TSLA",
+    "AAPL",
+    "KO"
+  ],
+  "indicators": [
+    {
+      "type": "CCI",
+      "enabled": true,
+      "period": 20,
+      "buy_threshold": -100.0,
+      "sell_threshold": 100.0
+    },
+    {
+      "type": "MACD",
+      "enabled": true,
+      "fast": 12,
+      "slow": 26,
+      "signal": 9,
+      "buy_threshold": 0.8,
+      "sell_threshold": -0.2
+    },
+    {
+      "type": "KDJ",
+      "enabled": true,
+      "period": 9,
+      "k_smooth": 3,
+      "d_smooth": 3,
+      "buy_threshold": 20,
+      "sell_threshold": 80
+    }
+  ]
+}

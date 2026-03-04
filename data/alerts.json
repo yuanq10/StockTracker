@@ -1,0 +1,61 @@
+{
+  "alerts": {
+    "TSLA": [
+      {
+        "indicator": "MACD",
+        "signal": "alert",
+        "value": -0.0274,
+        "reason": "MACD histogram -0.0274 within convergence range [-0.2, 0.8]"
+      },
+      {
+        "indicator": "KDJ",
+        "signal": "buy",
+        "value": 45.18,
+        "reason": "KDJ K=45.18 crossed above D=40.91 (bullish crossover)"
+      }
+    ],
+    "AAPL": [
+      {
+        "indicator": "KDJ",
+        "signal": "buy",
+        "value": 16.0,
+        "reason": "KDJ J=16.00 below oversold threshold 20"
+      }
+    ],
+    "KO": [
+      {
+        "indicator": "KDJ",
+        "signal": "buy",
+        "value": -7.7,
+        "reason": "KDJ J=-7.70 below oversold threshold 20"
+      }
+    ]
+  },
+  "stats": {
+    "TSLA": {
+      "close": 405.94,
+      "change_pct": 3.44,
+      "volume": 66070542,
+      "cci": -35.29,
+      "macd": -7.7776,
+      "kdj_k": 45.18
+    },
+    "AAPL": {
+      "close": 262.52,
+      "change_pct": -0.47,
+      "volume": 34903444,
+      "cci": -47.95,
+      "macd": 0.123,
+      "kdj_k": 32.04
+    },
+    "KO": {
+      "close": 78.08,
+      "change_pct": -1.59,
+      "volume": 13723280,
+      "cci": -16.27,
+      "macd": 1.5066,
+      "kdj_k": 26.04
+    }
+  },
+  "last_updated": "2026-03-04 16:00:53"
+}
