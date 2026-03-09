@@ -18,8 +18,8 @@
       "fast": 12,
       "slow": 26,
       "signal": 9,
-      "buy_threshold": 0.8,
-      "sell_threshold": -0.2
+      "buy_threshold": 0.5,
+      "sell_threshold": -0.5
     },
     {
       "type": "KDJ",
@@ -27,8 +27,8 @@
       "period": 9,
       "k_smooth": 3,
       "d_smooth": 3,
-      "buy_threshold": 20,
-      "sell_threshold": 80
+      "buy_threshold": 20.0,
+      "sell_threshold": 80.0
     }
   ]
 }

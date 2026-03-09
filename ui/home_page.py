@@ -8,9 +8,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from storage.settings_manager import load_settings, load_alerts, save_alerts
 from core.alert_engine import run_alerts
-from core.notifier import notify
+import ui.theme as T
 
-# Indicator stat keys that are clickable for subplot
 INDICATOR_STAT_KEYS = {"CCI": "CCI", "MACD": "MACD", "KDJ K": "KDJ"}
 
 
@@ -22,7 +21,7 @@ class HomePage(ctk.CTkFrame):
         self._fig = None
         self._selected_ticker = None
         self._current_df = None
-        self._active_indicator = None  # currently overlaid indicator name (CCI/MACD/KDJ)
+        self._active_indicator = None
         self._alert_data = {}
         self._build_ui()
         self._load_saved_alerts()
@@ -33,100 +32,179 @@ class HomePage(ctk.CTkFrame):
     def _build_ui(self):
         # ── Top bar ──────────────────────────────────────────────────
         top = ctk.CTkFrame(self, fg_color="transparent")
-        top.pack(fill="x", padx=16, pady=(12, 0))
+        top.pack(fill="x", padx=20, pady=(16, 0))
 
-        self._lbl_header = ctk.CTkLabel(top, text="Stock Tracker", font=ctk.CTkFont(size=20, weight="bold"))
+        self._lbl_header = ctk.CTkLabel(
+            top, text="Dashboard",
+            font=ctk.CTkFont(size=22, weight="bold"), text_color=T.TEXT
+        )
         self._lbl_header.pack(side="left")
 
-        self._lbl_updated = ctk.CTkLabel(top, text="Last updated: —", text_color="gray")
-        self._lbl_updated.pack(side="left", padx=20)
+        self._lbl_updated = ctk.CTkLabel(
+            top, text="", font=ctk.CTkFont(size=11), text_color=T.TEXT_MUTED
+        )
+        self._lbl_updated.pack(side="left", padx=16)
 
-        self._btn_update = ctk.CTkButton(top, text="Update", width=110, command=self._on_update)
+        self._btn_update = ctk.CTkButton(
+            top, text="Update", width=110, height=36, corner_radius=18,
+            fg_color=T.ACCENT, hover_color="#79b8ff", text_color="#000000",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=self._on_update
+        )
         self._btn_update.pack(side="right")
 
-        self._lbl_status = ctk.CTkLabel(top, text="", text_color="gray")
-        self._lbl_status.pack(side="right", padx=10)
+        self._lbl_status = ctk.CTkLabel(
+            top, text="", font=ctk.CTkFont(size=11), text_color=T.TEXT_MUTED
+        )
+        self._lbl_status.pack(side="right", padx=12)
 
-        # ── Middle row: attention list + detail panels ────────────────
+        # ── Middle row ───────────────────────────────────────────────
         mid = ctk.CTkFrame(self, fg_color="transparent")
-        mid.pack(fill="both", expand=True, padx=16, pady=12)
+        mid.pack(fill="both", expand=True, padx=20, pady=16)
 
-        # Right: attention list — narrower, just fits a ticker symbol
-        right_panel = ctk.CTkFrame(mid, width=150)
-        right_panel.pack(side="right", fill="y", padx=(8, 0))
-        right_panel.pack_propagate(False)
+        # LEFT: attention list
+        attn_panel = ctk.CTkFrame(
+            mid, width=170, fg_color=T.CARD,
+            corner_radius=12, border_width=1, border_color=T.BORDER
+        )
+        attn_panel.pack(side="left", fill="y", padx=(0, 10))
+        attn_panel.pack_propagate(False)
 
-        ctk.CTkLabel(right_panel, text="Attention", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 4), padx=8)
-        self._attention_list = ctk.CTkScrollableFrame(right_panel, label_text="")
-        self._attention_list.pack(fill="both", expand=True, padx=4, pady=4)
+        ctk.CTkLabel(
+            attn_panel, text="Attention",
+            font=ctk.CTkFont(size=18, weight="bold"), text_color=T.TEXT
+        ).pack(pady=(10, 4), padx=12, anchor="w")
 
-        # Left: detail panels
-        left_panel = ctk.CTkFrame(mid, fg_color="transparent")
-        left_panel.pack(side="left", fill="both", expand=True)
+        self._attention_list = ctk.CTkScrollableFrame(
+            attn_panel, fg_color="transparent", scrollbar_button_color=T.BORDER
+        )
+        self._attention_list.pack(fill="both", expand=True, padx=6, pady=(0, 6))
 
-        # Bottom three panels
-        bottom = ctk.CTkFrame(left_panel, fg_color="transparent")
+        # RIGHT: detail panels
+        detail_area = ctk.CTkFrame(mid, fg_color="transparent")
+        detail_area.pack(side="left", fill="both", expand=True)
+
+        bottom = ctk.CTkFrame(detail_area, fg_color="transparent")
         bottom.pack(fill="both", expand=True)
         bottom.columnconfigure(0, weight=2)   # Reason
-        bottom.columnconfigure(1, weight=5)   # Chart (dominant)
-        bottom.columnconfigure(2, weight=2)   # Stats (more space now)
+        bottom.columnconfigure(1, weight=8)   # Chart (dominant)
+        bottom.columnconfigure(2, weight=0, minsize=60)  # Stats fixed ~60px
         bottom.rowconfigure(0, weight=1)
 
         # Panel 1 – Reason
-        reason_frame = ctk.CTkFrame(bottom)
-        reason_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 4))
-        ctk.CTkLabel(reason_frame, text="Reason", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 4), padx=8, anchor="w")
-        self._txt_reason = ctk.CTkTextbox(reason_frame, wrap="word", state="disabled")
-        self._txt_reason.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+        reason_frame = ctk.CTkFrame(
+            bottom, fg_color=T.CARD, corner_radius=12,
+            border_width=1, border_color=T.BORDER
+        )
+        reason_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
+
+        ctk.CTkLabel(
+            reason_frame, text="Signal Reasons",
+            font=ctk.CTkFont(size=18, weight="bold"), text_color=T.TEXT
+        ).pack(pady=(14, 8), padx=12, anchor="w")
+
+        self._txt_reason = ctk.CTkTextbox(
+            reason_frame, wrap="word", state="disabled",
+            fg_color=T.BG, text_color=T.TEXT,
+            font=ctk.CTkFont(size=11), corner_radius=8,
+            border_width=0, scrollbar_button_color=T.BORDER
+        )
+        self._txt_reason.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+
+        # Configure colour tags for signal types
+        try:
+            tb = self._txt_reason._textbox
+            tb.tag_config("buy",   foreground=T.SUCCESS)
+            tb.tag_config("sell",  foreground=T.DANGER)
+            tb.tag_config("alert", foreground=T.WARNING)
+            tb.tag_config("error", foreground=T.DANGER)
+            tb.tag_config("body",  foreground=T.TEXT_MUTED)
+        except Exception:
+            pass
 
         # Panel 2 – Chart
-        chart_frame = ctk.CTkFrame(bottom)
-        chart_frame.grid(row=0, column=1, sticky="nsew", padx=4)
-        ctk.CTkLabel(chart_frame, text="Price Chart", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 4), padx=8, anchor="w")
+        chart_frame = ctk.CTkFrame(
+            bottom, fg_color=T.CARD, corner_radius=12,
+            border_width=1, border_color=T.BORDER
+        )
+        chart_frame.grid(row=0, column=1, sticky="nsew", padx=6)
+
+        ctk.CTkLabel(
+            chart_frame, text="Price Chart",
+            font=ctk.CTkFont(size=18, weight="bold"), text_color=T.TEXT
+        ).pack(pady=(14, 4), padx=12, anchor="w")
+
         self._chart_container = ctk.CTkFrame(chart_frame, fg_color="transparent")
-        self._chart_container.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+        self._chart_container.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
         # Panel 3 – Stats
-        stats_frame = ctk.CTkFrame(bottom)
-        stats_frame.grid(row=0, column=2, sticky="nsew", padx=(4, 0))
-        ctk.CTkLabel(stats_frame, text="Stock Stats", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 4), padx=8, anchor="w")
-        ctk.CTkLabel(stats_frame, text="Click CCI/MACD/KDJ to plot", text_color="gray",
-                     font=ctk.CTkFont(size=10)).pack(padx=8, anchor="w")
-        self._stats_inner = ctk.CTkFrame(stats_frame, fg_color="transparent")
-        self._stats_inner.pack(fill="both", expand=True, padx=8, pady=(4, 8))
+        stats_frame = ctk.CTkFrame(
+            bottom, fg_color=T.CARD, corner_radius=12,
+            border_width=1, border_color=T.BORDER
+        )
+        stats_frame.grid(row=0, column=2, sticky="nsew", padx=(6, 0))
+
+        ctk.CTkLabel(
+            stats_frame, text="Stats",
+            font=ctk.CTkFont(size=18, weight="bold"), text_color=T.TEXT
+        ).pack(pady=(14, 8), padx=12, anchor="w")
+
+        self._stats_inner = ctk.CTkScrollableFrame(
+            stats_frame, fg_color="transparent", scrollbar_button_color=T.BORDER
+        )
+        self._stats_inner.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
         self._stat_labels = {}
         self._stat_key_btns = {}
 
-        # Non-clickable stats
-        for key, display in [("Close", "Close"), ("Change % (1d)", "Change (1d)"), ("Volume", "Volume")]:
-            row = ctk.CTkFrame(self._stats_inner, fg_color="transparent")
-            row.pack(fill="x", pady=2)
-            ctk.CTkLabel(row, text=f"{display}:", width=80, anchor="w").pack(side="left")
-            lbl = ctk.CTkLabel(row, text="—", anchor="w")
-            lbl.pack(side="left")
-            self._stat_labels[key] = lbl
+        for key, display in [
+            ("Close", "Close Price"),
+            ("Change % (1d)", "Change (1d)"),
+            ("Volume", "Volume"),
+        ]:
+            self._stat_labels[key] = self._make_metric_card(self._stats_inner, display)
 
-        # Separator
-        ctk.CTkLabel(self._stats_inner, text="─── Indicators (click to plot) ───",
-                     text_color="gray", font=ctk.CTkFont(size=10)).pack(pady=(6, 2), anchor="w")
+        ctk.CTkLabel(
+            self._stats_inner, text="INDICATORS",
+            font=ctk.CTkFont(size=9, weight="bold"), text_color=T.TEXT_DIM
+        ).pack(anchor="w", padx=4, pady=(10, 2))
 
-        # Clickable indicator stats
         for stat_key, ind_type in INDICATOR_STAT_KEYS.items():
-            row = ctk.CTkFrame(self._stats_inner, fg_color="transparent")
-            row.pack(fill="x", pady=2)
-            key_btn = ctk.CTkButton(
-                row, text=f"{stat_key}:", width=72, anchor="w",
-                fg_color="transparent", hover_color=("gray70", "gray35"),
-                text_color=("gray30", "gray70"),
-                font=ctk.CTkFont(size=12),
-                command=lambda k=stat_key, t=ind_type: self._toggle_indicator_plot(k, t)
+            self._stat_labels[stat_key] = self._make_metric_card(
+                self._stats_inner, stat_key,
+                clickable=True,
+                click_cmd=lambda k=stat_key, t=ind_type: self._toggle_indicator_plot(k, t),
+                btn_store_key=stat_key,
             )
-            key_btn.pack(side="left")
-            lbl = ctk.CTkLabel(row, text="—", anchor="w")
-            lbl.pack(side="left")
-            self._stat_labels[stat_key] = lbl
-            self._stat_key_btns[stat_key] = key_btn
+
+    def _make_metric_card(self, parent, label, clickable=False, click_cmd=None, btn_store_key=None):
+        card = ctk.CTkFrame(parent, fg_color=T.BG, corner_radius=6,
+                            border_width=1, border_color=T.BORDER)
+        card.pack(fill="x", pady=2)
+
+        if clickable:
+            header_btn = ctk.CTkButton(
+                card, text=label, anchor="w", height=18,
+                fg_color="transparent", hover_color=T.CARD,
+                text_color=T.TEXT_MUTED, font=ctk.CTkFont(size=9),
+                command=click_cmd
+            )
+            header_btn.pack(anchor="w", padx=5, pady=(4, 0))
+            if btn_store_key is not None:
+                self._stat_key_btns[btn_store_key] = header_btn
+        else:
+            ctk.CTkLabel(
+                card, text=label, font=ctk.CTkFont(size=9),
+                text_color=T.TEXT_MUTED, anchor="w"
+            ).pack(anchor="w", padx=5, pady=(4, 0))
+
+        val_lbl = ctk.CTkLabel(
+            card, text="—",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=T.TEXT, anchor="w"
+        )
+        val_lbl.pack(anchor="w", padx=5, pady=(0, 4))
+        return val_lbl
 
     # ------------------------------------------------------------------
     # Data loading
@@ -145,19 +223,60 @@ class HomePage(ctk.CTkFrame):
         alerts = data.get("alerts", {})
         ts = data.get("last_updated", "")
         if ts:
-            self._lbl_updated.configure(text=f"Last updated: {ts}")
+            self._lbl_updated.configure(text=f"Updated {ts}")
 
         attention_tickers = [t for t, a in alerts.items() if a]
         if not attention_tickers:
-            ctk.CTkLabel(self._attention_list, text="No alerts", text_color="gray").pack(pady=8)
+            ctk.CTkLabel(
+                self._attention_list, text="No alerts",
+                font=ctk.CTkFont(size=11), text_color=T.TEXT_MUTED
+            ).pack(pady=10)
         else:
             for ticker in attention_tickers:
-                btn = ctk.CTkButton(
-                    self._attention_list, text=ticker, anchor="w",
-                    fg_color="transparent", hover_color=("gray70", "gray40"),
-                    command=lambda t=ticker, d=data: self._select_ticker(t, d)
+                ticker_alerts = alerts[ticker]
+                signals = {a.get("signal") for a in ticker_alerts}
+                if "buy" in signals:
+                    bar_color = T.SUCCESS
+                elif "sell" in signals:
+                    bar_color = T.DANGER
+                else:
+                    bar_color = T.WARNING
+
+                row = ctk.CTkFrame(
+                    self._attention_list, fg_color="transparent",
+                    height=36, cursor="hand2"
                 )
-                btn.pack(fill="x", pady=2)
+                row.pack(fill="x", pady=3)
+                row.pack_propagate(False)
+
+                # Accent bar sits outside the card — no corner mismatch
+                ctk.CTkFrame(row, width=3, corner_radius=2,
+                             fg_color=bar_color).pack(
+                    side="left", fill="y", padx=(0, 5)
+                )
+
+                item = ctk.CTkFrame(
+                    row, fg_color=T.BG,
+                    corner_radius=8, border_width=1, border_color=T.BORDER,
+                    cursor="hand2"
+                )
+                item.pack(side="left", fill="both", expand=True)
+
+                lbl = ctk.CTkLabel(
+                    item, text=ticker, anchor="w",
+                    text_color=T.TEXT, font=ctk.CTkFont(size=16, weight="bold"),
+                    cursor="hand2"
+                )
+                lbl.pack(fill="both", expand=True, padx=8)
+
+                cmd = lambda e, t=ticker, d=data: self._select_ticker(t, d)
+                hover_in  = lambda e, i=item: i.configure(fg_color=T.CARD)
+                hover_out = lambda e, i=item: i.configure(fg_color=T.BG)
+                for w in (row, item, lbl):
+                    w.bind("<Button-1>", cmd)
+                for w in (item, lbl):
+                    w.bind("<Enter>", hover_in)
+                    w.bind("<Leave>", hover_out)
 
         self._alert_data = data
 
@@ -171,14 +290,20 @@ class HomePage(ctk.CTkFrame):
 
         self._lbl_header.configure(text=ticker)
 
-        # Reason text
+        # Reason text with coloured signal labels
         self._txt_reason.configure(state="normal")
         self._txt_reason.delete("1.0", "end")
+        tb = getattr(self._txt_reason, "_textbox", None)
         if alerts:
             for a in alerts:
-                signal = a.get("signal", "").upper()
+                signal = a.get("signal", "").lower()
                 reason = a.get("reason", "")
-                self._txt_reason.insert("end", f"[{signal}] {reason}\n\n")
+                tag = signal if signal in ("buy", "sell", "alert", "error") else "body"
+                if tb:
+                    tb.insert("end", f"[{signal.upper()}] ", tag)
+                    tb.insert("end", f"{reason}\n\n", "body")
+                else:
+                    self._txt_reason.insert("end", f"[{signal.upper()}] {reason}\n\n")
         else:
             self._txt_reason.insert("end", "No alerts for this stock.")
         self._txt_reason.configure(state="disabled")
@@ -189,7 +314,7 @@ class HomePage(ctk.CTkFrame):
 
         self._stat_labels["Close"].configure(text=fmt(stats.get("close")))
         change = stats.get("change_pct")
-        color = "green" if (change or 0) >= 0 else "red"
+        color = T.SUCCESS if (change or 0) >= 0 else T.DANGER
         self._stat_labels["Change % (1d)"].configure(text=fmt(change, "%"), text_color=color)
         vol = stats.get("volume")
         self._stat_labels["Volume"].configure(text=f"{vol:,}" if vol else "—")
@@ -197,7 +322,6 @@ class HomePage(ctk.CTkFrame):
         self._stat_labels["MACD"].configure(text=fmt(stats.get("macd")))
         self._stat_labels["KDJ K"].configure(text=fmt(stats.get("kdj_k")))
 
-        # Fetch + draw chart in background thread
         threading.Thread(target=self._fetch_and_draw, args=(ticker,), daemon=True).start()
 
     def _fetch_and_draw(self, ticker: str):
@@ -216,21 +340,19 @@ class HomePage(ctk.CTkFrame):
         if self._current_df is None or self._selected_ticker is None:
             return
         if self._active_indicator == ind_type:
-            # Deselect — back to price-only
             self._active_indicator = None
             self._reset_indicator_btn_highlights()
         else:
             self._active_indicator = ind_type
             self._reset_indicator_btn_highlights()
             self._stat_key_btns[stat_key].configure(
-                text_color=("#1a7fd4", "#4a9eff"),
-                fg_color=("gray80", "gray25")
+                text_color=T.ACCENT, fg_color=T.CARD
             )
         self._render_chart(self._current_df, self._selected_ticker, self._active_indicator)
 
     def _reset_indicator_btn_highlights(self):
         for btn in self._stat_key_btns.values():
-            btn.configure(text_color=("gray30", "gray70"), fg_color="transparent")
+            btn.configure(text_color=T.TEXT_MUTED, fg_color="transparent")
 
     # ------------------------------------------------------------------
     # Chart rendering
@@ -241,8 +363,8 @@ class HomePage(ctk.CTkFrame):
         if self._fig:
             plt.close(self._fig)
 
-        bg = "#2b2b2b"
-        fg = "white"
+        bg = T.CHART_BG
+        fg = T.TEXT
 
         if indicator:
             self._fig, (ax_price, ax_ind) = plt.subplots(
@@ -253,12 +375,11 @@ class HomePage(ctk.CTkFrame):
             self._fig, ax_price = plt.subplots(figsize=(5, 3), facecolor=bg)
             ax_ind = None
 
-        # ── Price subplot ──────────────────────────────────────────
-        ax_price.set_facecolor(bg)
-        ax_price.plot(df.index, df["Close"], color="#4a9eff", linewidth=1.5)
-        ax_price.set_title(ticker, color=fg, fontsize=10)
-        ax_price.tick_params(colors=fg, labelsize=7)
-        ax_price.spines[:].set_color("gray")
+        self._style_ax(ax_price, bg)
+        ax_price.plot(df.index, df["Close"], color=T.CHART_PRICE, linewidth=1.8)
+        ax_price.fill_between(df.index, df["Close"], alpha=0.08, color=T.CHART_PRICE)
+        ax_price.set_title(ticker, color=fg, fontsize=10, pad=8)
+
         if ax_ind is None:
             ax_price.xaxis.set_major_locator(matplotlib.dates.AutoDateLocator())
             ax_price.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%m/%d"))
@@ -266,24 +387,31 @@ class HomePage(ctk.CTkFrame):
         else:
             plt.setp(ax_price.get_xticklabels(), visible=False)
 
-        # ── Indicator subplot ──────────────────────────────────────
         if ax_ind is not None:
-            ax_ind.set_facecolor(bg)
-            ax_ind.tick_params(colors=fg, labelsize=7)
-            ax_ind.spines[:].set_color("gray")
+            self._style_ax(ax_ind, bg)
             ax_ind.xaxis.set_major_locator(matplotlib.dates.AutoDateLocator())
             ax_ind.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%m/%d"))
             plt.setp(ax_ind.get_xticklabels(), rotation=30, ha="right")
 
             settings = load_settings()
-            ind_cfg = next((i for i in settings.get("indicators", []) if i["type"] == indicator), {})
+            ind_cfg = next(
+                (i for i in settings.get("indicators", []) if i["type"] == indicator), {}
+            )
             self._plot_indicator(ax_ind, df, indicator, ind_cfg, fg, bg)
 
-        self._fig.tight_layout(pad=0.5)
+        self._fig.tight_layout(pad=0.8)
         canvas = FigureCanvasTkAgg(self._fig, master=self._chart_container)
         canvas.draw()
         canvas.get_tk_widget().pack(fill="both", expand=True)
         self._chart_canvas = canvas
+
+    def _style_ax(self, ax, bg: str):
+        ax.set_facecolor(bg)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        ax.tick_params(colors=T.TEXT_MUTED, labelsize=7)
+        ax.yaxis.tick_right()
+        ax.grid(True, color=T.CHART_GRID, linewidth=0.5, alpha=0.8, axis="y")
 
     def _plot_indicator(self, ax, df, indicator: str, ind_cfg: dict, fg: str, bg: str):
         from core.indicators import calc_cci, calc_macd, calc_kdj
@@ -291,13 +419,17 @@ class HomePage(ctk.CTkFrame):
         if indicator == "CCI":
             period = ind_cfg.get("period", 20)
             cci = calc_cci(df, period).dropna()
-            ax.plot(cci.index, cci.values, color="#ff9f40", linewidth=1.2)
+            ax.plot(cci.index, cci.values, color=T.CHART_CCI, linewidth=1.4)
             buy_th = ind_cfg.get("buy_threshold", -100)
             sell_th = ind_cfg.get("sell_threshold", 100)
-            ax.axhline(buy_th, color="lime", linestyle="--", linewidth=0.8, alpha=0.8)
-            ax.axhline(sell_th, color="tomato", linestyle="--", linewidth=0.8, alpha=0.8)
-            ax.axhline(0, color="gray", linewidth=0.5, alpha=0.5)
-            ax.set_ylabel("CCI", color=fg, fontsize=7)
+            ax.axhline(buy_th,  color=T.SUCCESS, linestyle="--", linewidth=0.8, alpha=0.7)
+            ax.axhline(sell_th, color=T.DANGER,  linestyle="--", linewidth=0.8, alpha=0.7)
+            ax.axhline(0, color=T.TEXT_DIM, linewidth=0.5, alpha=0.6)
+            ax.fill_between(cci.index, cci.values, buy_th,
+                            where=(cci.values < buy_th), alpha=0.2, color=T.SUCCESS, interpolate=True)
+            ax.fill_between(cci.index, cci.values, sell_th,
+                            where=(cci.values > sell_th), alpha=0.2, color=T.DANGER, interpolate=True)
+            ax.set_ylabel("CCI", color=T.TEXT_MUTED, fontsize=7)
 
         elif indicator == "MACD":
             fast = ind_cfg.get("fast", 12)
@@ -305,49 +437,52 @@ class HomePage(ctk.CTkFrame):
             signal = ind_cfg.get("signal", 9)
             result = calc_macd(df, fast, slow, signal)
             macd_s = result["macd"].dropna()
-            sig_s = result["signal"].dropna()
+            sig_s  = result["signal"].dropna()
             hist_s = result["histogram"].dropna()
             idx = macd_s.index.intersection(sig_s.index).intersection(hist_s.index)
-            ax.plot(macd_s[idx].index, macd_s[idx].values, color="#4a9eff", linewidth=1.2, label="MACD")
-            ax.plot(sig_s[idx].index, sig_s[idx].values, color="#ff6b6b", linewidth=1.2, label="Signal")
+            ax.plot(macd_s[idx].index, macd_s[idx].values, color=T.CHART_MACD_LINE, linewidth=1.2, label="MACD")
+            ax.plot(sig_s[idx].index,  sig_s[idx].values,  color=T.CHART_SIG_LINE,  linewidth=1.2, label="Signal")
             pos = hist_s[idx][hist_s[idx] >= 0]
-            neg = hist_s[idx][hist_s[idx] < 0]
+            neg = hist_s[idx][hist_s[idx] <  0]
             if not pos.empty:
-                ax.bar(pos.index, pos.values, color="lime", alpha=0.45, width=0.8)
+                ax.bar(pos.index, pos.values, color=T.CHART_HIST_POS, alpha=0.5, width=0.8)
             if not neg.empty:
-                ax.bar(neg.index, neg.values, color="tomato", alpha=0.45, width=0.8)
-            buy_th = ind_cfg.get("buy_threshold")
+                ax.bar(neg.index, neg.values, color=T.CHART_HIST_NEG, alpha=0.5, width=0.8)
+            buy_th  = ind_cfg.get("buy_threshold")
             sell_th = ind_cfg.get("sell_threshold")
-            if buy_th is not None and buy_th != 0:
-                ax.axhline(buy_th, color="lime", linestyle="--", linewidth=0.8, alpha=0.8)
+            if buy_th  is not None and buy_th  != 0:
+                ax.axhline(buy_th,  color=T.SUCCESS, linestyle="--", linewidth=0.8, alpha=0.7)
             if sell_th is not None and sell_th != 0:
-                ax.axhline(sell_th, color="tomato", linestyle="--", linewidth=0.8, alpha=0.8)
-            ax.axhline(0, color="gray", linewidth=0.5, alpha=0.5)
-            ax.set_ylabel("MACD", color=fg, fontsize=7)
-            ax.legend(fontsize=6, facecolor=bg, labelcolor=fg, loc="upper left")
+                ax.axhline(sell_th, color=T.DANGER,  linestyle="--", linewidth=0.8, alpha=0.7)
+            ax.axhline(0, color=T.TEXT_DIM, linewidth=0.5, alpha=0.6)
+            ax.set_ylabel("MACD", color=T.TEXT_MUTED, fontsize=7)
+            ax.legend(fontsize=6, facecolor=T.CARD, labelcolor=T.TEXT_MUTED,
+                      loc="upper left", framealpha=0.8, edgecolor=T.BORDER)
 
         elif indicator == "KDJ":
-            period = ind_cfg.get("period", 9)
+            period   = ind_cfg.get("period", 9)
             k_smooth = ind_cfg.get("k_smooth", 3)
             d_smooth = ind_cfg.get("d_smooth", 3)
             result = calc_kdj(df, period, k_smooth, d_smooth)
             K = result["K"].dropna()
             D = result["D"].dropna()
             J = result["J"].dropna()
-            ax.plot(K.index, K.values, color="#4a9eff", linewidth=1.2, label="K")
-            ax.plot(D.index, D.values, color="#ff9f40", linewidth=1.2, label="D")
-            ax.plot(J.index, J.values, color="#ff6b6b", linewidth=1.2, label="J")
-            buy_th = ind_cfg.get("buy_threshold", 20)
+            ax.plot(K.index, K.values, color=T.CHART_K, linewidth=1.2, label="K")
+            ax.plot(D.index, D.values, color=T.CHART_D, linewidth=1.2, label="D")
+            ax.plot(J.index, J.values, color=T.CHART_J, linewidth=1.2, label="J")
+            buy_th  = ind_cfg.get("buy_threshold", 20)
             sell_th = ind_cfg.get("sell_threshold", 80)
-            ax.axhline(buy_th, color="lime", linestyle="--", linewidth=0.8, alpha=0.8)
-            ax.axhline(sell_th, color="tomato", linestyle="--", linewidth=0.8, alpha=0.8)
-            ax.set_ylabel("KDJ", color=fg, fontsize=7)
-            ax.legend(fontsize=6, facecolor=bg, labelcolor=fg, loc="upper left")
+            ax.axhline(buy_th,  color=T.SUCCESS, linestyle="--", linewidth=0.8, alpha=0.7)
+            ax.axhline(sell_th, color=T.DANGER,  linestyle="--", linewidth=0.8, alpha=0.7)
+            ax.set_ylabel("KDJ", color=T.TEXT_MUTED, fontsize=7)
+            ax.legend(fontsize=6, facecolor=T.CARD, labelcolor=T.TEXT_MUTED,
+                      loc="upper left", framealpha=0.8, edgecolor=T.BORDER)
 
     def _clear_chart(self, msg=""):
         for w in self._chart_container.winfo_children():
             w.destroy()
-        ctk.CTkLabel(self._chart_container, text=msg or "No chart", text_color="gray").pack(expand=True)
+        ctk.CTkLabel(self._chart_container, text=msg or "No chart",
+                     text_color=T.TEXT_MUTED).pack(expand=True)
 
     # ------------------------------------------------------------------
     # Update button
@@ -360,7 +495,7 @@ class HomePage(ctk.CTkFrame):
     def _run_update(self):
         try:
             settings = load_settings()
-            stocks = settings.get("stocks", [])
+            stocks     = settings.get("stocks", [])
             indicators = settings.get("indicators", [])
 
             if not stocks:
@@ -374,10 +509,6 @@ class HomePage(ctk.CTkFrame):
             result = run_alerts(stocks, indicators, on_progress=progress)
             save_alerts(result)
 
-            alert_tickers = [t for t, a in result["alerts"].items() if a]
-            if alert_tickers:
-                msg = "Alerts: " + ", ".join(alert_tickers)
-                notify("Stock Tracker", msg)
 
             self.after(0, lambda: self._finish_update(result, "Done."))
         except Exception as e:

@@ -1,5 +1,11 @@
 import pandas as pd
 import numpy as np
+try:
+    import talib
+    from talib import abstract as _talib_abstract
+    _TA_AVAILABLE = True
+except ImportError:
+    _TA_AVAILABLE = False
 
 
 def _ema(series: pd.Series, span: int) -> pd.Series:
@@ -40,3 +46,29 @@ def calc_kdj(df: pd.DataFrame, period: int = 9, k_smooth: int = 3, d_smooth: int
     D = K.ewm(span=d_smooth, adjust=False).mean()
     J = 3 * K - 2 * D
     return {"K": K, "D": D, "J": J}
+
+
+def is_indicator_available(name: str) -> bool:
+    """Return True if TA-Lib supports the given indicator name."""
+    if not _TA_AVAILABLE:
+        return False
+    return name.upper() in talib.get_functions()
+
+
+def calc_generic_indicator(df: pd.DataFrame, name: str, **params) -> pd.Series:
+    """Calculate a generic indicator via TA-Lib abstract API. Returns the primary Series."""
+    if not _TA_AVAILABLE:
+        raise ImportError("ta-lib is not installed.")
+    fn = _talib_abstract.Function(name.upper())
+    inputs = {
+        "open":   df["Open"].values,
+        "high":   df["High"].values,
+        "low":    df["Low"].values,
+        "close":  df["Close"].values,
+        "volume": df["Volume"].values,
+    }
+    result = fn(inputs, **{k: v for k, v in params.items() if v is not None})
+    # Multi-output functions return a list of arrays; take the first one
+    if isinstance(result, (list, tuple)):
+        result = result[0]
+    return pd.Series(result, index=df.index)

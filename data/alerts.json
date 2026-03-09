@@ -3,59 +3,71 @@
     "TSLA": [
       {
         "indicator": "MACD",
+        "signal": "sell",
+        "value": -0.0093,
+        "reason": "MACD crossed below signal line (histogram -0.0093)"
+      },
+      {
+        "indicator": "MACD",
         "signal": "alert",
-        "value": -0.0274,
-        "reason": "MACD histogram -0.0274 within convergence range [-0.2, 0.8]"
+        "value": -0.0093,
+        "reason": "MACD histogram -0.0093 within convergence range [-0.5, 0.5]"
       },
       {
         "indicator": "KDJ",
-        "signal": "buy",
-        "value": 45.18,
-        "reason": "KDJ K=45.18 crossed above D=40.91 (bullish crossover)"
+        "signal": "sell",
+        "value": 41.94,
+        "reason": "KDJ K=41.94 crossed below D=44.06 (bearish crossover)"
       }
     ],
     "AAPL": [
       {
+        "indicator": "CCI",
+        "signal": "buy",
+        "value": -103.84,
+        "reason": "CCI -103.84 below oversold threshold -100.0"
+      },
+      {
         "indicator": "KDJ",
         "signal": "buy",
-        "value": 16.0,
-        "reason": "KDJ J=16.00 below oversold threshold 20"
+        "value": 6.22,
+        "reason": "KDJ J=6.22 below oversold threshold 20.0"
       }
     ],
     "KO": [
       {
         "indicator": "KDJ",
         "signal": "buy",
-        "value": -7.7,
-        "reason": "KDJ J=-7.70 below oversold threshold 20"
+        "value": -0.32,
+        "reason": "KDJ J=-0.32 below oversold threshold 20.0"
       }
     ]
   },
   "stats": {
     "TSLA": {
-      "close": 405.94,
-      "change_pct": 3.44,
-      "volume": 66070542,
-      "cci": -35.29,
-      "macd": -7.7776,
-      "kdj_k": 45.18
+      "close": 396.73,
+      "change_pct": -2.17,
+      "volume": 64054561,
+      "cci": -76.08,
+      "macd": -7.4559,
+      "kdj_k": 41.94
     },
     "AAPL": {
-      "close": 262.52,
-      "change_pct": -0.47,
-      "volume": 34903444,
-      "cci": -47.95,
-      "macd": 0.123,
-      "kdj_k": 32.04
+      "close": 257.46,
+      "change_pct": -1.09,
+      "volume": 41120042,
+      "cci": -103.84,
+      "macd": -0.9265,
+      "kdj_k": 19.15
     },
     "KO": {
-      "close": 78.08,
-      "change_pct": -1.59,
-      "volume": 13723280,
-      "cci": -16.27,
-      "macd": 1.5066,
-      "kdj_k": 26.04
+      "close": 77.04,
+      "change_pct": 0.01,
+      "volume": 14495007,
+      "cci": -51.68,
+      "macd": 0.9471,
+      "kdj_k": 15.1
     }
   },
-  "last_updated": "2026-03-04 16:00:53"
+  "last_updated": "2026-03-09 02:52:11"
 }

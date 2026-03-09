@@ -1,5 +1,5 @@
 from core.data_fetcher import fetch_stock_data, get_stock_info
-from core.indicators import calc_cci, calc_macd, calc_kdj
+from core.indicators import calc_cci, calc_macd, calc_kdj, calc_generic_indicator
 
 
 def run_alerts(stocks: list, indicators: list, on_progress=None) -> dict:
@@ -151,6 +151,30 @@ def run_alerts(stocks: list, indicators: list, on_progress=None) -> dict:
                                 "value": round(curr_k, 2),
                                 "reason": f"KDJ K={curr_k:.2f} crossed below D={curr_d:.2f} (bearish crossover)"
                             })
+
+                else:
+                    # Generic TA-Lib indicator
+                    buy_th = ind.get("buy_threshold", None)
+                    sell_th = ind.get("sell_threshold", None)
+                    # Pass all numeric params (except type, enabled, thresholds) to the function
+                    SKIP = {"type", "enabled", "buy_threshold", "sell_threshold"}
+                    ta_params = {k: v for k, v in ind.items() if k not in SKIP and isinstance(v, (int, float))}
+                    series = calc_generic_indicator(df, itype, **ta_params)
+                    val = float(series.dropna().iloc[-1])
+                    if buy_th is not None and val < buy_th:
+                        ticker_alerts.append({
+                            "indicator": itype,
+                            "signal": "buy",
+                            "value": round(val, 4),
+                            "reason": f"{itype} {val:.4f} below buy threshold {buy_th}"
+                        })
+                    elif sell_th is not None and val > sell_th:
+                        ticker_alerts.append({
+                            "indicator": itype,
+                            "signal": "sell",
+                            "value": round(val, 4),
+                            "reason": f"{itype} {val:.4f} above sell threshold {sell_th}"
+                        })
 
             except Exception as e:
                 ticker_alerts.append({
